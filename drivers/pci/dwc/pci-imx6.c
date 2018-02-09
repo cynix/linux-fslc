@@ -424,6 +424,11 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 	/* allow the clocks to stabilize */
 	usleep_range(200, 500);
 
+	if (imx6_pcie->variant == IMX7D) {
+		reset_control_deassert(imx6_pcie->pciephy_reset);
+		imx7d_pcie_wait_for_phy_pll_lock(imx6_pcie);
+	}
+
 	/* Some boards don't have PCIe reset GPIO. */
 	if (gpio_is_valid(imx6_pcie->reset_gpio)) {
 		gpio_set_value_cansleep(imx6_pcie->reset_gpio,
@@ -434,9 +439,7 @@ static void imx6_pcie_deassert_core_reset(struct imx6_pcie *imx6_pcie)
 	}
 
 	switch (imx6_pcie->variant) {
-	case IMX7D:
-		reset_control_deassert(imx6_pcie->pciephy_reset);
-		imx7d_pcie_wait_for_phy_pll_lock(imx6_pcie);
+	case IMX7D:		/* Already done above */
 		break;
 	case IMX6SX:
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR5,
@@ -473,8 +476,10 @@ static void imx6_pcie_init_phy(struct imx6_pcie *imx6_pcie)
 {
 	switch (imx6_pcie->variant) {
 	case IMX7D:
+		if (imx6_pcie->vpcie)
+			regulator_set_voltage(imx6_pcie->vpcie, 1000000, 1000000);
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,
-				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL, 0);
+				   IMX7D_GPR12_PCIE_PHY_REFCLK_SEL, IMX7D_GPR12_PCIE_PHY_REFCLK_SEL);
 		break;
 	case IMX6SX:
 		regmap_update_bits(imx6_pcie->iomuxc_gpr, IOMUXC_GPR12,

@@ -116,12 +116,102 @@
 		clock-output-names = "osc";
 	};
 
+	usbphynop1: usbphynop1 {
+		compatible = "usb-nop-xceiv";
+		clocks = <&clks IMX7D_USB_PHY1_CLK>;
+		clock-names = "main_clk";
+	};
+
+	usbphynop3: usbphynop3 {
+		compatible = "usb-nop-xceiv";
+		clocks = <&clks IMX7D_USB_HSIC_ROOT_CLK>;
+		clock-names = "main_clk";
+	};
+
+	pmu {
+		compatible = "arm,cortex-a7-pmu";
+		interrupt-parent = <&gpc>;
+		interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-affinity = <&cpu0>;
+	};
+
+	replicator {
+		/*
+		 * non-configurable replicators don't show up on the
+		 * AMBA bus.  As such no need to add "arm,primecell"
+		 */
+		compatible = "arm,coresight-replicator";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			/* replicator output ports */
+			port@0 {
+				reg = <0>;
+				replicator_out_port0: endpoint {
+					remote-endpoint = <&tpiu_in_port>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				replicator_out_port1: endpoint {
+					remote-endpoint = <&etr_in_port>;
+				};
+			};
+
+			/* replicator input port */
+			port@2 {
+				reg = <0>;
+				replicator_in_port0: endpoint {
+					slave-mode;
+					remote-endpoint = <&etf_out_port>;
+				};
+			};
+		};
+	};
+
+	timer {
+		compatible = "arm,armv7-timer";
+		interrupt-parent = <&intc>;
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+					<GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+					<GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+					<GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
+	};
+
 	soc {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "simple-bus";
 		interrupt-parent = <&gpc>;
 		ranges;
+
+		ocrams: sram@00180000 {
+			compatible = "fsl,lpm-sram";
+			reg = <0x00180000 0x8000>;
+			clocks = <&clks IMX7D_OCRAM_S_CLK>;
+			status = "disabled";
+		};
+
+		ocrams_ddr: sram@00900000 {
+			compatible = "fsl,ddr-lpm-sram";
+			reg = <0x00900000 0x1000>;
+			clocks = <&clks IMX7D_OCRAM_CLK>;
+		};
+
+		ocrams_mf: sram-mf@00900000 {
+			compatible = "fsl,mega-fast-sram";
+			reg = <0x00900000 0x20000>;
+			clocks = <&clks IMX7D_OCRAM_CLK>;
+		};
+
+		ocram: sram@00901000 {
+			compatible = "mmio-sram";
+			reg = <0x00901000 0x1f000>;
+			clocks = <&clks IMX7D_OCRAM_CLK>;
+		};
 
 		funnel@30041000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
@@ -260,43 +350,6 @@
 			};
 		};
 
-		replicator {
-			/*
-			 * non-configurable replicators don't show up on the
-			 * AMBA bus.  As such no need to add "arm,primecell"
-			 */
-			compatible = "arm,coresight-replicator";
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				/* replicator output ports */
-				port@0 {
-					reg = <0>;
-					replicator_out_port0: endpoint {
-						remote-endpoint = <&tpiu_in_port>;
-					};
-				};
-
-				port@1 {
-					reg = <1>;
-					replicator_out_port1: endpoint {
-						remote-endpoint = <&etr_in_port>;
-					};
-				};
-
-				/* replicator input port */
-				port@2 {
-					reg = <0>;
-					replicator_in_port0: endpoint {
-						slave-mode;
-						remote-endpoint = <&etf_out_port>;
-					};
-				};
-			};
-		};
-
 		intc: interrupt-controller@31001000 {
 			compatible = "arm,cortex-a7-gic";
 			interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
@@ -307,15 +360,6 @@
 			      <0x31002000 0x2000>,
 			      <0x31004000 0x2000>,
 			      <0x31006000 0x2000>;
-		};
-
-		timer {
-			compatible = "arm,armv7-timer";
-			interrupt-parent = <&intc>;
-			interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-				     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-				     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
-				     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
 		};
 
 		aips1: aips-bus@30000000 {
@@ -534,6 +578,8 @@
 					offset = <0x34>;
 					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>,
 						     <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+					clocks = <&clks IMX7D_SNVS_CLK>;
+					clock-names = "snvs-rtc";
 				};
 
 				snvs_poweroff: snvs-poweroff {
@@ -583,9 +629,9 @@
 					#address-cells = <1>;
 					#size-cells = <0>;
 
-					pgc_pcie_phy: pgc-power-domain@IMX7_POWER_DOMAIN_PCIE_PHY {
+					pgc_pcie_phy: pgc-power-domain@1 {
 						#power-domain-cells = <0>;
-						reg = <IMX7_POWER_DOMAIN_PCIE_PHY>;
+						reg = <1>;
 						power-supply = <&reg_1p0d>;
 					};
 				};
@@ -682,6 +728,11 @@
 				clock-names = "pix", "axi";
 				status = "disabled";
 			};
+
+			ddrc: ddrc@307a0000 {
+				compatible = "fsl,imx7-ddrc";
+				reg = <0x307a0000 0x10000>;
+			};
 		};
 
 		aips3: aips-bus@30800000 {
@@ -700,6 +751,8 @@
 				clocks = <&clks IMX7D_ECSPI1_ROOT_CLK>,
 					<&clks IMX7D_ECSPI1_ROOT_CLK>;
 				clock-names = "ipg", "per";
+				dmas = <&sdma 0 7 1>, <&sdma 1 7 2>;
+				dma-names = "rx", "tx";
 				status = "disabled";
 			};
 
@@ -712,6 +765,8 @@
 				clocks = <&clks IMX7D_ECSPI2_ROOT_CLK>,
 					<&clks IMX7D_ECSPI2_ROOT_CLK>;
 				clock-names = "ipg", "per";
+				dmas = <&sdma 2 7 1>, <&sdma 3 7 2>;
+				dma-names = "rx", "tx";
 				status = "disabled";
 			};
 
@@ -724,6 +779,8 @@
 				clocks = <&clks IMX7D_ECSPI3_ROOT_CLK>,
 					<&clks IMX7D_ECSPI3_ROOT_CLK>;
 				clock-names = "ipg", "per";
+				dmas = <&sdma 4 7 1>, <&sdma 5 7 2>;
+				dma-names = "rx", "tx";
 				status = "disabled";
 			};
 
@@ -909,6 +966,20 @@
 				status = "disabled";
 			};
 
+			mu: mu@30aa0000 {
+				compatible = "fsl,imx7d-mu", "fsl,imx6sx-mu";
+				reg = <0x30aa0000 0x10000>;
+				interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clks IMX7D_MU_ROOT_CLK>;
+				clock-names = "mu";
+				status = "okay";
+			};
+
+			rpmsg: rpmsg {
+				compatible = "fsl,imx7d-rpmsg";
+				status = "disabled";
+			};
+
 			usbotg1: usb@30b10000 {
 				compatible = "fsl,imx7d-usb", "fsl,imx27-usb";
 				reg = <0x30b10000 0x200>;
@@ -943,18 +1014,6 @@
 				#index-cells = <1>;
 				compatible = "fsl,imx7d-usbmisc", "fsl,imx6q-usbmisc";
 				reg = <0x30b30200 0x200>;
-			};
-
-			usbphynop1: usbphynop1 {
-				compatible = "usb-nop-xceiv";
-				clocks = <&clks IMX7D_USB_PHY1_CLK>;
-				clock-names = "main_clk";
-			};
-
-			usbphynop3: usbphynop3 {
-				compatible = "usb-nop-xceiv";
-				clocks = <&clks IMX7D_USB_HSIC_ROOT_CLK>;
-				clock-names = "main_clk";
 			};
 
 			usdhc1: usdhc@30b40000 {
@@ -1001,6 +1060,7 @@
 					 <&clks IMX7D_AHB_CHANNEL_ROOT_CLK>;
 				clock-names = "ipg", "ahb";
 				#dma-cells = <3>;
+				iram = <&ocram>;
 				fsl,sdma-ram-script-name = "imx/sdma/sdma-imx7d.bin";
 			};
 
@@ -1010,6 +1070,13 @@
 				interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>;
+				/*
+				clocks = <&clks IMX7D_ENET1_IPG_ROOT_CLK>,
+					<&clks IMX7D_ENET_AXI_ROOT_CLK>,
+					<&clks IMX7D_ENET1_TIME_ROOT_CLK>,
+					<&clks IMX7D_PLL_ENET_MAIN_125M_CLK>,
+					<&clks IMX7D_ENET_PHY_REF_ROOT_DIV>;
+				*/
 				clocks = <&clks IMX7D_ENET_AXI_ROOT_CLK>,
 					<&clks IMX7D_ENET_AXI_ROOT_CLK>,
 					<&clks IMX7D_ENET1_TIME_ROOT_CLK>,
