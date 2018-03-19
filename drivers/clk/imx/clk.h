@@ -149,16 +149,9 @@ static inline struct clk *imx_clk_gate2_shared2(const char *name,
 		const char *parent, void __iomem *reg, u8 shift,
 		unsigned int *share_count)
 {
-#if 0
-	return clk_register_gate2(NULL, name, parent, CLK_SET_RATE_PARENT |
-				  CLK_OPS_PARENT_ENABLE | CLK_SET_RATE_GATE,
-				  reg, shift, 0x3, 0, &imx_ccm_lock,
-				  share_count);
-#else
 	return clk_register_gate2(NULL, name, parent, CLK_SET_RATE_PARENT |
 				  CLK_OPS_PARENT_ENABLE, reg, shift, 0x3, 0,
 				  &imx_ccm_lock, share_count);
-#endif
 }
 
 static inline struct clk *imx_clk_gate2_cgr(const char *name,
@@ -179,25 +172,10 @@ static inline struct clk *imx_clk_gate3(const char *name, const char *parent,
 static inline struct clk *imx_clk_gate4(const char *name, const char *parent,
 		void __iomem *reg, u8 shift)
 {
-#if 0
-	return clk_register_gate2(NULL, name, parent, CLK_SET_RATE_PARENT |
-				  CLK_OPS_PARENT_ENABLE | CLK_SET_RATE_GATE,
-				  reg, shift, 0x3, 0, &imx_ccm_lock, NULL);
-#else
 	return clk_register_gate2(NULL, name, parent,
 			CLK_SET_RATE_PARENT | CLK_OPS_PARENT_ENABLE,
 			reg, shift, 0x3, 0, &imx_ccm_lock, NULL);
-#endif
 }
-
-#if 0
-static inline struct clk *imx_clk_gate2_flags(const char *name, const char *parent,
-               void __iomem *reg, u8 shift, unsigned long flags)
-{
-        return clk_register_gate2(NULL, name, parent, flags, reg, shift, 0x3,
-				  0, &imx_ccm_lock, NULL);
-}
-#endif
 
 static inline struct clk *imx_clk_mux(const char *name, void __iomem *reg,
 		u8 shift, u8 width, const char **parents, int num_parents)

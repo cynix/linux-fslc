@@ -31,7 +31,17 @@
 		enable-active-high;
 	};
 
-	reg_usbh_nreset: regulator-vbus {
+	reg_phy1_nreset: regulator-phy1-nrst {
+		compatible = "regulator-fixed";
+		regulator-name = "fec1_phy_nreset";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	reg_usbh_nreset: regulator-usbh-nrst {
 		compatible = "regulator-fixed";
 		regulator-name = "usb_host_nreset";
 		regulator-min-microvolt = <3300000>;
@@ -40,6 +50,21 @@
 		enable-active-high;
 		regulator-always-on;
 	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		onboard-led {
+			label = "Heartbeat";
+			gpios = <&gpio6 14 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+};
+
+&clks {
+	assigned-clocks = <&clks IMX7D_PLL_AUDIO_POST_DIV>;
+	assigned-clock-rates = <884736000>;
 };
 
 &cpu0 {
@@ -56,7 +81,7 @@
 	m25px16@0 {
 		#address-cells = <1>;
 		#size-cells = <1>;
-		compatible = "st,m25px16", "st,m25p";
+		compatible = "m25p16-nonjedec";
 		spi-max-frequency = <20000000>;
 		reg = <1>;
 
@@ -87,6 +112,7 @@
 	phy-mode = "rgmii";
 	phy-handle = <&ethphy0>;
 	fsl,magic-packet;
+	phy-reset-gpios = <&pca9555 4 GPIO_ACTIVE_LOW>;
 	status = "okay";
 
 	mdio {
@@ -279,10 +305,20 @@
 &wdog1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_wdog>;
-	fsl,wdog_b;
+	fsl,ext-reset-output;
 };
 
 &iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	pinctrl_hog: hoggrp {
+		fsl,pins = <
+			MX7D_PAD_GPIO1_IO15__GPIO1_IO15			0x34 /* WLAN IRQ */
+			MX7D_PAD_SAI1_TX_SYNC__GPIO6_IO14		0x34 /* Onboard LED */
+		>;
+	};
+
 	pinctrl_ecspi1: ecspi1grp {
 		fsl,pins = <
 			MX7D_PAD_ECSPI1_MOSI__ECSPI1_MOSI		0xf
@@ -304,35 +340,35 @@
 		fsl,pins = <
 			MX7D_PAD_SD2_CD_B__ENET1_MDIO			0x30
 			MX7D_PAD_SD2_WP__ENET1_MDC			0x30
-			MX7D_PAD_ENET1_RGMII_TXC__ENET1_RGMII_TXC	0x11
-			MX7D_PAD_ENET1_RGMII_TD0__ENET1_RGMII_TD0	0x11
-			MX7D_PAD_ENET1_RGMII_TD1__ENET1_RGMII_TD1	0x11
-			MX7D_PAD_ENET1_RGMII_TD2__ENET1_RGMII_TD2	0x11
-			MX7D_PAD_ENET1_RGMII_TD3__ENET1_RGMII_TD3	0x11
-			MX7D_PAD_ENET1_RGMII_TX_CTL__ENET1_RGMII_TX_CTL	0x11
-			MX7D_PAD_ENET1_RGMII_RXC__ENET1_RGMII_RXC	0x11
-			MX7D_PAD_ENET1_RGMII_RD0__ENET1_RGMII_RD0	0x11
-			MX7D_PAD_ENET1_RGMII_RD1__ENET1_RGMII_RD1	0x11
-			MX7D_PAD_ENET1_RGMII_RD2__ENET1_RGMII_RD2	0x11
-			MX7D_PAD_ENET1_RGMII_RD3__ENET1_RGMII_RD3	0x11
-			MX7D_PAD_ENET1_RGMII_RX_CTL__ENET1_RGMII_RX_CTL	0x11
+			MX7D_PAD_ENET1_RGMII_TXC__ENET1_RGMII_TXC	0x1
+			MX7D_PAD_ENET1_RGMII_TD0__ENET1_RGMII_TD0	0x1
+			MX7D_PAD_ENET1_RGMII_TD1__ENET1_RGMII_TD1	0x1
+			MX7D_PAD_ENET1_RGMII_TD2__ENET1_RGMII_TD2	0x1
+			MX7D_PAD_ENET1_RGMII_TD3__ENET1_RGMII_TD3	0x1
+			MX7D_PAD_ENET1_RGMII_TX_CTL__ENET1_RGMII_TX_CTL	0x1
+			MX7D_PAD_ENET1_RGMII_RXC__ENET1_RGMII_RXC	0x1
+			MX7D_PAD_ENET1_RGMII_RD0__ENET1_RGMII_RD0	0x1
+			MX7D_PAD_ENET1_RGMII_RD1__ENET1_RGMII_RD1	0x1
+			MX7D_PAD_ENET1_RGMII_RD2__ENET1_RGMII_RD2	0x1
+			MX7D_PAD_ENET1_RGMII_RD3__ENET1_RGMII_RD3	0x1
+			MX7D_PAD_ENET1_RGMII_RX_CTL__ENET1_RGMII_RX_CTL	0x1
 		>;
 	};
 
 	pinctrl_enet2: enet2grp {
 		fsl,pins = <
-			MX7D_PAD_EPDC_GDSP__ENET2_RGMII_TXC		0x11
-			MX7D_PAD_EPDC_SDCE2__ENET2_RGMII_TD0		0x11
-			MX7D_PAD_EPDC_SDCE3__ENET2_RGMII_TD1		0x11
-			MX7D_PAD_EPDC_GDCLK__ENET2_RGMII_TD2		0x11
-			MX7D_PAD_EPDC_GDOE__ENET2_RGMII_TD3		0x11
-			MX7D_PAD_EPDC_GDRL__ENET2_RGMII_TX_CTL		0x11
-			MX7D_PAD_EPDC_SDCE1__ENET2_RGMII_RXC		0x11
-			MX7D_PAD_EPDC_SDCLK__ENET2_RGMII_RD0		0x11
-			MX7D_PAD_EPDC_SDLE__ENET2_RGMII_RD1		0x11
-			MX7D_PAD_EPDC_SDOE__ENET2_RGMII_RD2		0x11
-			MX7D_PAD_EPDC_SDSHR__ENET2_RGMII_RD3		0x11
-			MX7D_PAD_EPDC_SDCE0__ENET2_RGMII_RX_CTL		0x11
+			MX7D_PAD_EPDC_GDSP__ENET2_RGMII_TXC		0x1
+			MX7D_PAD_EPDC_SDCE2__ENET2_RGMII_TD0		0x1
+			MX7D_PAD_EPDC_SDCE3__ENET2_RGMII_TD1		0x1
+			MX7D_PAD_EPDC_GDCLK__ENET2_RGMII_TD2		0x1
+			MX7D_PAD_EPDC_GDOE__ENET2_RGMII_TD3		0x1
+			MX7D_PAD_EPDC_GDRL__ENET2_RGMII_TX_CTL		0x1
+			MX7D_PAD_EPDC_SDCE1__ENET2_RGMII_RXC		0x1
+			MX7D_PAD_EPDC_SDCLK__ENET2_RGMII_RD0		0x1
+			MX7D_PAD_EPDC_SDLE__ENET2_RGMII_RD1		0x1
+			MX7D_PAD_EPDC_SDOE__ENET2_RGMII_RD2		0x1
+			MX7D_PAD_EPDC_SDSHR__ENET2_RGMII_RD3		0x1
+			MX7D_PAD_EPDC_SDCE0__ENET2_RGMII_RX_CTL		0x1
 		>;
 	};
 
@@ -370,6 +406,15 @@
 };
 
 &iomuxc_lpsr {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog_lpsr>;
+
+	pinctrl_hog_lpsr: hoggrp_lpsr {
+		fsl,pins = <
+			MX7D_PAD_LPSR_GPIO1_IO04__GPIO1_IO4			0x34 /* FEC1 Phy nReset */
+		>;
+	};
+
 	pinctrl_i2c2: i2c2grp {
 		fsl,pins = <
 			MX7D_PAD_LPSR_GPIO1_IO07__I2C2_SDA	0x4000000f
