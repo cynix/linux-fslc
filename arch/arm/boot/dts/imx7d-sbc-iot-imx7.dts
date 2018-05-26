@@ -14,10 +14,6 @@
 / {
 	model = "CompuLab CL-SOM-iMX7 on SB-IOT";
 	compatible = "compulab,sbc-iot-imx7", "compulab,cl-som-imx7", "fsl,imx7d";
-
-	aliases {
-		pcie = &pcie;
-	};
 };
 
 &ecspi3 {
@@ -80,15 +76,6 @@
 	assigned-clocks = <&clks IMX7D_UART7_ROOT_SRC>;
 	assigned-clock-parents = <&clks IMX7D_PLL_SYS_MAIN_240M_CLK>;
 	uart-has-rtscts;
-	status = "okay";
-};
-
-&usdhc1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usdhc1>;
-	cd-gpios = <&gpio5 0 GPIO_ACTIVE_LOW>;
-	wp-gpios = <&gpio5 1 GPIO_ACTIVE_HIGH>;
-	wakeup-source;
 	status = "okay";
 };
 
@@ -160,18 +147,6 @@
 			MX7D_PAD_ECSPI2_SCLK__UART7_DCE_RX	0x79 /* R485-RX */
 			MX7D_PAD_ECSPI2_SS0__UART7_DCE_CTS	0x79 /* R485-CTS */
 			MX7D_PAD_ECSPI2_MISO__UART7_DCE_RTS	0x79 /* R485-TTS */
-		>;
-	};
-
-	pinctrl_usdhc1: usdhc1grp {
-		fsl,pins = <
-			MX7D_PAD_SD1_CMD__SD1_CMD		0x59
-			MX7D_PAD_SD1_CLK__SD1_CLK		0x19
-			MX7D_PAD_SD1_DATA0__SD1_DATA0		0x59
-			MX7D_PAD_SD1_DATA1__SD1_DATA1		0x59
-			MX7D_PAD_SD1_DATA2__SD1_DATA2		0x59
-			MX7D_PAD_SD1_DATA3__SD1_DATA3		0x59
-			MX7D_PAD_SD1_CD_B__GPIO5_IO0		0x59 /* CD */
 		>;
 	};
 };
