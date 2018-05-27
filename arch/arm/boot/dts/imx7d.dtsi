@@ -198,7 +198,7 @@
 			status = "disabled";
 		};
 
-		pcie: pcie@0x33800000 {
+		pcie: pcie@33800000 {
 			compatible = "fsl,imx7d-pcie", "snps,dw-pcie";
 			reg = <0x33800000 0x4000>,  <0x4ff00000 0x80000>;
 			reg-names = "dbi", "config";
